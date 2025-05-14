@@ -1,6 +1,0 @@
-# you can add the name of Ubuntu packages which need
-# to be installed below, one package per line
-check
-libargon2-dev
-valgrind
-afl
