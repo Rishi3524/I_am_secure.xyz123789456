@@ -1,2 +1,0 @@
-libargon2-dev
-check
