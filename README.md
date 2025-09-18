@@ -1,144 +1,72 @@
-# conv2d (C + OpenMP) — Running on **Kaya** (UWA HPC)
+﻿<div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh;">
 
-This README shows how to build and run the provided 2‑D convolution program (`src/conv_test_2d.c`) on the **Kaya** cluster using **Slurm**.
+  <h2>Labs 1-5</h2>
+  
+  <p>Student ID: [Student ID]</p>
+  <p>Student Name: [First and Surname]</p>
 
-> SSH to Kaya, put your project in `/group/cits3402/<username>` or `/scratch/cits3402/<username>`, build with `make`, and submit a Slurm job using the `cits3402` partition.
+</div>
 
----
+# Lab 1
 
-## 1) Prerequisites
+## AWS Account and Log in
 
-- You have a **Kaya** account and can SSH to the login node:
-  ```bash
-  ssh <username>@kaya01.hpc.uwa.edu.au
-  ```
-- **Do not** run heavy computations on login nodes. Use **Slurm** to run on compute nodes.
-- Recommended working locations (fast storage):
-  - `/group/cits3402/<username>` for shared course files
-  - `/scratch/cits3402/<username>` for temporary data and job outputs
+### [1] Log into an IAM user account created for you on AWS.
 
----
+[Refer to the marking rubrics for sufficient step-by-step description.]
 
-## 2) Getting the code onto Kaya
+### [2] Search and open Identity Access Management
 
-From your laptop/desktop:
-```bash
-scp -r <local_project_dir> <username>@kaya01.hpc.uwa.edu.au:/group/cits3402/<username>/conv2d
-# or
-scp -r <local_project_dir> <username>@kaya01.hpc.uwa.edu.au:/scratch/cits3402/<username>/conv2d
-```
+[Refer to the marking rubrics for sufficient step-by-step description.]
 
-Then on Kaya:
-```bash
-ssh <username>@kaya01.hpc.uwa.edu.au
-cd /group/cits3402/<username>/conv2d   # or /scratch/cits3402/<username>/conv2d
-```
+## Set up recent Unix-like OSes
 
----
+[Refer to the marking rubrics for sufficient step-by-step description.]
 
-## 3) Build
+## Install Linux packages
 
-We can build with a simple `make` on Kaya. Put a `Makefile` at the project root. The one is below:
+### [1] Install Python
 
-```makefile
-# Makefile 
-CC      = gcc
-CFLAGS  = -O3 -Wall -Wextra -std=c11 -fopenmp
-LDFLAGS = -fopenmp
-SRC     = conv_test.c
-OBJ     = $(SRC:.c=.o)
-TARGET  = conv_test
+[Refer to the marking rubrics for sufficient step-by-step description.]
 
-.PHONY: all clean run debug
+### [2] Install awscli
 
-all: $(TARGET)
+[Refer to the marking rubrics for sufficient step-by-step description.]
 
-$(TARGET): $(OBJ)
-    $(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+### [3] Configure AWS
 
-%.o: %.c
-    $(CC) $(CFLAGS) -c $< -o $@
+[Refer to the marking rubrics for sufficient step-by-step description.]
 
-run: $(TARGET)
-    ./$(TARGET)
+### [4] Install boto3
 
-debug: CFLAGS = -O0 -g -Wall -Wextra -std=c11 -fopenmp
-debug: clean $(TARGET)
+[Refer to the marking rubrics for sufficient step-by-step description.]
 
-clean:
-    rm -f $(OBJ) $(TARGET)
-```
+## Test the installed environment
 
-Build:
-```bash
-make           # (produces ./conv_test)
-```
+### [1] Test the AWS environment
 
-> If you prefer to compile manually:  
-> `gcc -O3 -march=native -fopenmp -o conv_test src/conv_test_2d.c`
+[Refer to the marking rubrics for sufficient step-by-step description.]
 
----
+### [2] Test the Python environment
 
-## 4) Run via Slurm (batch script)
+[Refer to the marking rubrics for sufficient step-by-step description.]
 
-Create a batch script `conv2d.slurm` in your project root which compiles and runs the program on a compute node.
+### [3] Write a Python script
 
-```bash
-cat > conv2d.slurm <<'SLURM'
-#!/bin/bash
-#SBATCH --job-name=conv2d
-#SBATCH --output=conv2d.%j.out
-#SBATCH --error=conv2d.%j.err
-#SBATCH --cpus-per-task=16
-#SBATCH --time=00:10:00
-#SBATCH --mem=8G
-#SBATCH --partition=cits3402
+[Refer to the marking rubrics for sufficient step-by-step description.]
 
-# Build 
-make
+<div style="page-break-after: always;"></div>
 
-# Example 1: generate 10k x 10k with 3x3 kernel (parallel)
-./conv_test -H 10000 -W 10000 -kH 3 -kW 3 -p
+# Lab 2
 
-# Example 2: read existing inputs and write output (serial)
-# ./conv_test -f f.txt -g g.txt -o o.txt
-SLURM
-```
+<div style="page-break-after: always;"></div>
 
-Submit the job:
-```bash
-sbatch conv2d.slurm
-```
+# Lab 3
 
-Outputs will appear as `conv2d.<jobid>.out` and `conv2d.<jobid>.err` in your working directory.
+<div style="page-break-after: always;"></div>
 
----
+# Lab 4
 
-## 5) Program usage
+<div style="page-break-after: always;"></div>
 
-Two modes are supported by `conv_test`:
-
-- **Generate mode** (random input/kernel), optional save of inputs/outputs:
-  ```bash
-  ./conv_test -H H -W W -kH kH -kW kW [-f f.txt] [-g g.txt] [-o o.txt] [-s SEED] [-p]
-  ```
-- **Read mode** (read `f.txt` and `g.txt`, optional `-o`):
-  ```bash
-  ./conv_test -f f.txt -g g.txt [-o o.txt] [-p]
-  ```
-
-Notes:
-- Default is **serial**; add `-p` for **OpenMP** parallel.
-- Text format for arrays: first line `H W`, followed by rows of space‑separated values.
-
----
-
-## 6) Run examples
-
-```bash
-# Large parallel run (10k x 10k, 3x3)
-./conv_test -H 10000 -W 10000 -kH 3 -kW 3 -p
-
-# Small serial run (1k x 1k, 3x3)
-./conv_test -H 1000 -W 1000 -kH 3 -kW 3
-```
+# Lab 5
