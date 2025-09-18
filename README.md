@@ -1,4 +1,4 @@
-﻿<div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh;">
+<img width="1477" height="395" alt="Screenshot 2025-09-18 163810" src="https://github.com/user-attachments/assets/243becc1-4756-498b-95bc-446e8644dd41" /><img width="1474" height="168" alt="Screenshot 2025-09-18 163632" src="https://github.com/user-attachments/assets/4058e292-7e74-42af-b36b-17a72f0fc9e9" />﻿<div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh;">
 
   <h1>CITS5503 Labs1-5 Report</h1>
   
@@ -825,5 +825,472 @@ aws dynamodb delete-table --table-name CloudFiles --endpoint-url http://localhos
 <div style="page-break-after: always;"></div>
 
 # Lab 4
+
+## Apply a policy to restrict permissions on the bucket
+
+### Write a Python script
+
+1. I made the following python script **apply_bucket_policy.py** to apply the a policy to an S3 bucket to allow only your username to access the bucket. 
+
+
+```
+import boto3
+import json
+
+bucket_name = "23463452-cloudstorage"
+student_number = "23463452"  
+username = f"{student_number}@student.uwa.edu.au"
+
+# bucket policy
+bucket_policy = {
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "RestrictAccessToUserOnly",
+            "Effect": "Deny",
+            "Principal": "*",
+            "Action": "s3:*",
+            "Resource": [
+                f"arn:aws:s3:::{bucket_name}",         # bucket itself
+                f"arn:aws:s3:::{bucket_name}/*"       # all objects inside
+            ],
+            "Condition": {
+                "StringNotLike": {
+                    "aws:username": username
+                }
+            }
+        }
+    ]
+}
+
+# Convert dict to JSON
+bucket_policy_json = json.dumps(bucket_policy)
+
+s3 = boto3.client('s3')
+
+# Apply policy
+try:
+    s3.put_bucket_policy(Bucket=bucket_name, Policy=bucket_policy_json)
+    print(f"Policy successfully applied to: {bucket_name}")
+except Exception as e:
+    print("Error in applying the policy:", e)
+
+
+```
+
+Uses **s3.put_bucket_policy()** to apply the given policy in lab4 to an S3 bucket to allow only your username to access the bucket.
+2. Configure AWS just as mention in the previous labs and run the script:
+
+```
+python3 apply_bucket_policy.py
+```
+
+### Check whether the script works
+
+1. I used the AWS CLI command and the AWS S3 console to see if it displays the policy content applied to the S3 bucket.
+
+   **AWS CLI command**:
+   ```
+   aws s3api get-bucket-policy --bucket <your_s3_bucket> --query Policy --output text
+
+   ```
+   <img width="1474" height="168" alt="Screenshot 2025-09-18 163632" src="https://github.com/user-attachments/assets/bf574832-020e-4dbd-ae4a-70ccda5d3d80" />
+
+**AWS S3 Console**:
+<img width="1919" height="940" alt="Screenshot 2025-09-18 163719" src="https://github.com/user-attachments/assets/7451d483-ff19-46be-aeee-6a6b842f6fc5" />
+
+
+
+2. Now I tested the policy by using a username that is not mine to access the folder called `rootdir` and output what I got.
+   Now I created two profiles to access the s3 bucket from different accounts:
+  ```
+  aws configure --profile 23463452
+  aws configure --profile 23237076 
+  ```
+Now 23463452 is in 23463452@student.uwa.edu.au username and 23237076 is in Rishi352004 username and now I use the following command to access to the bucket to which the policy was applied:
+
+```
+  aws s3 ls s3://<your_s3_bucket>/rootdir/ --profile 23463452
+  aws s3 ls s3://<your_s3_bucket>/rootdir/ --profile 23237076
+```
+
+Then it denies access to the user 23237076.
+
+<img width="1477" height="395" alt="Screenshot 2025-09-18 163810" src="https://github.com/user-attachments/assets/4c82749b-9781-4897-b493-7808f0263ddc" />
+
+
+## AES Encryption using KMS
+
+### Create a KMS key
+
+1. I made a Python script **create_kms_key.py** to create a KMS key, where my student number works as an alias for the key.
+
+### Attach a policy to the created KMS key
+
+1. I updated the above script to attach the following policy to the key.
+
+
+
+```
+{
+  "Version": "2012-10-17",
+  "Id": "key-consolepolicy-3",
+  "Statement": [
+    {
+      "Sid": "Enable IAM User Permissions",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::489389878001:root"
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "Allow access for Key Administrators",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::489389878001:user/<your_username>"
+      },
+      "Action": [
+        "kms:Create*",
+        "kms:Describe*",
+        "kms:Enable*",
+        "kms:List*",
+        "kms:Put*",
+        "kms:Update*",
+        "kms:Revoke*",
+        "kms:Disable*",
+        "kms:Get*",
+        "kms:Delete*",
+        "kms:TagResource",
+        "kms:UntagResource",
+        "kms:ScheduleKeyDeletion",
+        "kms:CancelKeyDeletion"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "Allow use of the key",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::489389878001:user/<your_username>"
+      },
+      "Action": [
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:ReEncrypt*",
+        "kms:GenerateDataKey*",
+        "kms:DescribeKey"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "Allow attachment of persistent resources",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::489389878001:user/<your_username>"
+      },
+      "Action": [
+        "kms:CreateGrant",
+        "kms:ListGrants",
+        "kms:RevokeGrant"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "Bool": {
+          "kms:GrantIsForAWSResource": "true"
+        }
+      }
+    }
+  ]
+}
+```
+
+2. Now the code is:
+```
+import boto3
+import json
+
+student_number = "23463452"
+username = "23463452@student.uwa.edu.au" 
+
+kms_client = boto3.client("kms")
+
+# 1. Create the KMS key
+response = kms_client.create_key(
+    Description=f"KMS key for {username}",
+    KeyUsage="ENCRYPT_DECRYPT",
+    CustomerMasterKeySpec="SYMMETRIC_DEFAULT",
+    Origin="AWS_KMS"
+)
+
+key_id = response["KeyMetadata"]["KeyId"]
+
+# 2. Create an alias for the key using student number
+alias = f"alias/{student_number}"
+kms_client.create_alias(
+    AliasName=alias,
+    TargetKeyId=key_id
+)
+
+
+
+key_policy = {
+    "Version": "2012-10-17",
+    "Id": "key-consolepolicy-3",
+    "Statement": [
+        {
+            "Sid": "Enable IAM User Permissions",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::489389878001:root"
+            },
+            "Action": "kms:*",
+            "Resource": "*"
+        },
+        {
+            "Sid": "Allow access for Key Administrators",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": f"arn:aws:iam::489389878001:user/{username}"
+            },
+            "Action": [
+                "kms:Create*","kms:Describe*","kms:Enable*","kms:List*",
+                "kms:Put*","kms:Update*","kms:Revoke*","kms:Disable*",
+                "kms:Get*","kms:Delete*","kms:TagResource","kms:UntagResource",
+                "kms:ScheduleKeyDeletion","kms:CancelKeyDeletion"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "Allow use of the key",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": f"arn:aws:iam::489389878001:user/{username}"
+            },
+            "Action": [
+                "kms:Encrypt","kms:Decrypt","kms:ReEncrypt*",
+                "kms:GenerateDataKey*","kms:DescribeKey"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "Allow attachment of persistent resources",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": f"arn:aws:iam::489389878001:user/{username}"
+            },
+            "Action": [
+                "kms:CreateGrant","kms:ListGrants","kms:RevokeGrant"
+            ],
+            "Resource": "*",
+            "Condition": {
+                "Bool": {"kms:GrantIsForAWSResource": "true"}
+            }
+        }
+    ]
+}
+
+kms_client.put_key_policy(
+    KeyId=key_id,
+    Policy=json.dumps(key_policy),
+    PolicyName="default"
+)
+
+
+
+
+```
+
+Run the script using **python3 create_kms_key.py**.
+
+<img width="1919" height="455" alt="Screenshot 2025-09-18 175444" src="https://github.com/user-attachments/assets/906f9a20-a102-4c7f-b64e-b2018e77856e" />
+
+
+### Check whether the script works
+
+1. I used the AWS KMS console to test whether your username is the key administrator and key user.
+
+
+<img width="1483" height="497" alt="Screenshot 2025-09-18 175518" src="https://github.com/user-attachments/assets/f70d21e5-c241-4861-ac8d-172979e1b8cb" />
+<img width="1470" height="487" alt="Screenshot 2025-09-18 175536" src="https://github.com/user-attachments/assets/b24114d8-8f6a-498a-9596-b212f23ad283" />
+<img width="1473" height="473" alt="Screenshot 2025-09-18 175549" src="https://github.com/user-attachments/assets/8daa8e56-72e9-41d8-9433-1fa1fc8d9e2a" />
+
+### Use the created KMS key for encryption/decryption
+
+1. I made a Python script **kms_encrypt_decrypt.py** where each file from the S3 bucket is encrypted and then decrypted via the created KMS key. Both encrypted and decrypted files will be in the same folder as the original file.
+   
+```
+import boto3
+import os
+
+# Your KMS alias and bucket
+kms_key_id = "alias/23463452"
+bucket_name = "23463452-cloudstorage"
+
+s3 = boto3.client("s3")
+kms = boto3.client("kms")
+
+def kms_encrypt_file(filename):
+    with open(filename, "rb") as f:
+        plaintext = f.read()
+
+    response = kms.encrypt(KeyId=kms_key_id, Plaintext=plaintext)
+    ciphertext = response["CiphertextBlob"]
+
+    enc_filename = filename + ".kms.enc"
+    with open(enc_filename, "wb") as f:
+        f.write(ciphertext)
+
+    return enc_filename
+
+def kms_decrypt_file(enc_filename):
+    with open(enc_filename, "rb") as f:
+        ciphertext = f.read()
+
+    response = kms.decrypt(CiphertextBlob=ciphertext)
+    plaintext = response["Plaintext"]
+
+    dec_filename = enc_filename.replace(".kms.enc", ".kms.dec")
+    with open(dec_filename, "wb") as f:
+        f.write(plaintext)
+
+    return dec_filename
+
+def upload_to_s3(local_file):
+    key = os.path.basename(local_file)
+    s3.upload_file(local_file, bucket_name, key)
+    print(f"Uploaded {local_file} → s3://{bucket_name}/{key}")
+
+
+objects = s3.list_objects_v2(Bucket=bucket_name)
+
+if "Contents" in objects:
+    for obj in objects["Contents"]:
+        key = obj["Key"]
+        filename = os.path.basename(key)
+
+        # Skip already encrypted/decrypted files
+        if filename.endswith((".kms.enc", ".kms.dec")):
+            continue
+
+        # Download file
+        s3.download_file(bucket_name, key, filename)
+
+        # Encrypt + upload
+        enc_file = kms_encrypt_file(filename)
+        upload_to_s3(enc_file)
+
+        # Decrypt + upload
+        dec_file = kms_decrypt_file(enc_file)
+        upload_to_s3(dec_file)
+
+
+
+```
+
+Run the script using **python3 kms_encrypt_decrypt.py**.
+
+
+### Apply `pycryptodome` for encryption/decryption
+
+1. I made another Python script **pycrypto_encrypt_decrypt.py** that uses the Python library `pycryptodome` to encrypt and decrypt each file in the S3 bucket. Both encrypted and decrypted files will be in the same folder as the original file.
+
+For encryption/decryption, refer to the example code from [fileencrypt.py](https://github.com/zhangzhics/CITS5503_Sem2/blob/master/Labs/src/fileencrypt.py).
+
+```
+  import os
+import boto3
+import hashlib, struct
+from Crypto.Cipher import AES
+from Crypto import Random
+
+bucket_name = "23463452-cloudstorage"
+password = "kitty and the kat"
+
+s3 = boto3.client("s3")
+
+BLOCK_SIZE = 16
+CHUNK_SIZE = 64 * 1024
+
+def encrypt_file(password, in_filename, out_filename):
+    key = hashlib.sha256(password.encode("utf-8")).digest()
+    iv = Random.new().read(AES.block_size)
+    encryptor = AES.new(key, AES.MODE_CBC, iv)
+    filesize = os.path.getsize(in_filename)
+
+    with open(in_filename, "rb") as infile:
+        with open(out_filename, "wb") as outfile:
+            outfile.write(struct.pack("<Q", filesize))
+            outfile.write(iv)
+            while True:
+                chunk = infile.read(CHUNK_SIZE)
+                if len(chunk) == 0:
+                    break
+                elif len(chunk) % 16 != 0:
+                    chunk += b" " * (16 - len(chunk) % 16)
+                outfile.write(encryptor.encrypt(chunk))
+
+def decrypt_file(password, in_filename, out_filename):
+    key = hashlib.sha256(password.encode("utf-8")).digest()
+    with open(in_filename, "rb") as infile:
+        origsize = struct.unpack("<Q", infile.read(struct.calcsize("Q")))[0]
+        iv = infile.read(16)
+        decryptor = AES.new(key, AES.MODE_CBC, iv)
+        with open(out_filename, "wb") as outfile:
+            while True:
+                chunk = infile.read(CHUNK_SIZE)
+                if len(chunk) == 0:
+                    break
+                outfile.write(decryptor.decrypt(chunk))
+            outfile.truncate(origsize)
+
+def upload_to_s3(local_file):
+    key = os.path.basename(local_file)
+    s3.upload_file(local_file, bucket_name, key)
+    print(f"Uploaded {local_file} → s3://{bucket_name}/{key}")
+
+
+objects = s3.list_objects_v2(Bucket=bucket_name)
+
+if "Contents" in objects:
+    for obj in objects["Contents"]:
+        key = obj["Key"]
+        filename = os.path.basename(key)
+
+        # Skip already encrypted/decrypted files
+        if filename.endswith((".pycrypto.enc", ".pycrypto.dec")):
+            continue
+
+        # Download file
+        s3.download_file(bucket_name, key, filename)
+
+        # Encrypt + upload
+        enc_file = filename + ".pycrypto.enc"
+        encrypt_file(password, filename, enc_file)
+        upload_to_s3(enc_file)
+
+        # Decrypt + upload
+        dec_file = filename + ".pycrypto.dec"
+        decrypt_file(password, enc_file, dec_file)
+        upload_to_s3(dec_file)
+
+
+
+```
+Run the script using **pycrypto_encrypt_decrypt.py**.
+
+
+
+### Uploading
+
+1. I uploaded all encrypted and decrypted files to your S3 bucket from the above codes.
+
+<img width="1891" height="715" alt="image" src="https://github.com/user-attachments/assets/dc1cb855-6802-40fc-8925-355407be0ec8" />
+
+
+**NOTE**: Delete the created S3 bucket(s) and KMS key(s) from AWS console after the lab is done.
+
+
 
 <div style="page-break-after: always;"></div>
