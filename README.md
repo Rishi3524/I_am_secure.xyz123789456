@@ -472,16 +472,6 @@ Make sure to log out and log back in for this change to take effect.
 docker run -p 80:80 -dit --name my-app my-apache2
 ```
 
-<img width="1478" height="707" alt="Screenshot 2025-09-16 175713" src="https://github.com/user-attachments/assets/5f0180d1-c262-4904-97ad-047203468cb6" />
-<img width="531" height="77" alt="Screenshot 2025-09-16 175724" src="https://github.com/user-attachments/assets/9b642564-aaff-4dc5-ae60-fc4e823b73f6" />
-
-
-I opened a browser and accessed the address: http://localhost or http://127.0.0.1 to confirm that I got "Hello World!"
-
-<img width="442" height="213" alt="Screenshot 2025-09-16 175521" src="https://github.com/user-attachments/assets/6045ff08-8ee8-4303-bd93-f6a62fec7c2b" />
-
-
-
 8. I used this command to list all Docker containers, including both running and stopped ones:
 
 ```
@@ -498,6 +488,16 @@ docker stop my-app
 ```
 docker rm my-app
 ```
+
+
+<img width="1478" height="707" alt="Screenshot 2025-09-16 175713" src="https://github.com/user-attachments/assets/5f0180d1-c262-4904-97ad-047203468cb6" />
+<img width="531" height="77" alt="Screenshot 2025-09-16 175724" src="https://github.com/user-attachments/assets/9b642564-aaff-4dc5-ae60-fc4e823b73f6" />
+
+
+I opened a browser and accessed the address: http://localhost or http://127.0.0.1 to confirm that I got "Hello World!"
+
+<img width="442" height="213" alt="Screenshot 2025-09-16 175521" src="https://github.com/user-attachments/assets/6045ff08-8ee8-4303-bd93-f6a62fec7c2b" />
+
 
 **NOTE**: Delete the created EC2 instance(s) from AWS console after the lab is done.
 
